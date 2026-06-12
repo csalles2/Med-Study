@@ -1,0 +1,15 @@
+# dependências
+node_modules/
+
+# variáveis sensíveis
+.env
+
+# uploads temporários
+uploads/
+
+# arquivos gerados
+output.pdf
+
+# build frontend
+build/
+dist/
