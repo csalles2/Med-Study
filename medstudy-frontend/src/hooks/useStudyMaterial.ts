@@ -34,13 +34,12 @@ export function useStudyMaterial() {
       formData.append('file', file);
 
       // ATENÇÃO: Mudamos para /api/processar que é o que está no seu server.js
-  const response = await axios.post('http://localhost:3001/api/processar', formData, {
+const response = await axios.post('http://localhost:3001/api/processar', formData, {
   headers: {
-    Authorization: process.env.REACT_APP_API_TOKEN || '',
-  }
+    'Content-Type': 'multipart/form-data',
+    'Authorization': `Bearer ${process.env.REACT_APP_TOKEN}`,
+  },
 });
-
-
       clearInterval(loaderInterval);
       setMaterial(response.data); // O backend já retorna o objeto estruturado (titulo, resumo, flashcards...)
       setAppState('result');

@@ -26,7 +26,7 @@ export default function ResultView({ material, onReset }: Props) {
       setDownloadingPdf(true);
       const response = await axios.get('http://localhost:3001/api/download-pdf', {
         headers: {
-          Authorization: process.env.REACT_APP_API_TOKEN || '',
+          Authorization: process.env.REACT_APP_TOKEN || '',
         },
         responseType: 'blob',
       });

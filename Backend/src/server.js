@@ -22,7 +22,7 @@ const PORT = process.env.PORT || 3001;
 // ─────────────────────────────────────────────
 
 if (!process.env.APP_TOKEN || process.env.APP_TOKEN.length < 32) {
-  console.error('❌ APP_TOKEN inválido ou ausente. Defina um token de no mínimo 32 caracteres no .env');
+  console.error(' APP_TOKEN inválido ou ausente. Defina um token de no mínimo 32 caracteres no .env');
   process.exit(1);
 }
 
