@@ -51,9 +51,18 @@ app.use(helmet({
 // CORS — somente origens autorizadas
 // ─────────────────────────────────────────────
 
-const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000')
-  .split(',')
-  .map(o => o.trim());
+// Lista de origens permitidas
+const ALLOWED_ORIGINS = [
+  'https://med-study.up.railway.app',     // Seu frontend na Railway
+  'https://seu-frontend.vercel.app',      // Seu frontend na Vercel (se for o caso)
+  'http://localhost:3000',                // Frontend local
+  'http://localhost:8080'                 // Backend local
+];
+
+// Ou usar variável de ambiente
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS 
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : ['http://localhost:3000', 'http://localhost:8080'];
 
 app.use(cors({
   origin: (origin, cb) => {
