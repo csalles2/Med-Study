@@ -52,17 +52,13 @@ app.use(helmet({
 // ─────────────────────────────────────────────
 
 // Lista de origens permitidas
+// USAR APENAS ESTA VERSÃO (com array fixo)
 const ALLOWED_ORIGINS = [
-  'https://med-study.up.railway.app',     // Seu frontend na Railway
-  'https://seu-frontend.vercel.app',      // Seu frontend na Vercel (se for o caso)
-  'http://localhost:3000',                // Frontend local
-  'http://localhost:8080'                 // Backend local
+  'https://med-study.up.railway.app',
+  'https://seu-frontend.vercel.app',
+  'http://localhost:3000',
+  'http://localhost:8080'
 ];
-
-// Ou usar variável de ambiente
-const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS 
-  ? process.env.ALLOWED_ORIGINS.split(',')
-  : ['http://localhost:3000', 'http://localhost:8080'];
 
 app.use(cors({
   origin: (origin, cb) => {
@@ -74,7 +70,6 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: false,
 }));
-
 // ─────────────────────────────────────────────
 // RATE LIMITING — por IP
 // ─────────────────────────────────────────────
