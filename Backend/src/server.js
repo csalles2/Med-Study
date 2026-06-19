@@ -53,23 +53,33 @@ app.use(helmet({
 
 // Lista de origens permitidas
 // USAR APENAS ESTA VERSÃO (com array fixo)
-const ALLOWED_ORIGINS = [
-  'https://med-study.up.railway.app',
-  'https://seu-frontend.vercel.app',
-  'http://localhost:3000',
-  'http://localhost:8080'
-];
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS 
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : ['http://localhost:3000', 'http://localhost:8080'];
 
 app.use(cors({
   origin: (origin, cb) => {
-    if (!origin && process.env.ALLOW_NO_ORIGIN === 'true') return cb(null, true);
-    if (origin && ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    // Permite requisições sem origin (acesso direto ao navegador)
+    if (!origin) return cb(null, true);
+    
+    // Permite origens na lista
+    if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    
     cb(new Error('Origem não permitida pelo CORS'));
   },
   methods: ['GET', 'POST'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: false,
 }));
+
+
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'online', 
+    message: 'API Med-Study rodando!',
+    timestamp: new Date().toISOString()
+  });
+});
 // ─────────────────────────────────────────────
 // RATE LIMITING — por IP
 // ─────────────────────────────────────────────
