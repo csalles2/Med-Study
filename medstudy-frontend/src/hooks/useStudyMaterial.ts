@@ -34,12 +34,8 @@ export function useStudyMaterial() {
       formData.append('file', file);
 
       // ATENÇÃO: Mudamos para /api/processar que é o que está no seu server.js
-const response = await axios.post('http://localhost:3001/api/processar', formData, {
-  headers: {
-    'Content-Type': 'multipart/form-data',
-    'Authorization': `Bearer ${process.env.REACT_APP_TOKEN}`,
-  },
-});
+const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/processar`, formData);
+
       clearInterval(loaderInterval);
       setMaterial(response.data); // O backend já retorna o objeto estruturado (titulo, resumo, flashcards...)
       setAppState('result');

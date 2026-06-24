@@ -15,6 +15,7 @@ const { generateStudyMaterial } = require('./ai');
 const { createPdf } = require('./pdf');
 
 const app = express();
+app.set('trust proxy', 1); // ADICIONAR ESSA LINHA
 const PORT = process.env.PORT || 3001;
 
 // ─────────────────────────────────────────────
