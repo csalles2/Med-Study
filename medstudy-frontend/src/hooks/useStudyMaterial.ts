@@ -34,7 +34,11 @@ export function useStudyMaterial() {
       formData.append('file', file);
 
       // ATENÇÃO: Mudamos para /api/processar que é o que está no seu server.js
-const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/processar`, formData);
+          const response = await axios.post(
+            `${process.env.REACT_APP_API_URL}/api/processar`,
+            formData,
+            { timeout: 120000 } // 2 minutos
+          );
 
       clearInterval(loaderInterval);
       setMaterial(response.data); // O backend já retorna o objeto estruturado (titulo, resumo, flashcards...)
