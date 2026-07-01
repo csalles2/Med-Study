@@ -299,13 +299,10 @@ app.post(
       const chunks = chunkText(text);
       const chunksLimitados = chunks.slice(0, 5);
 
-      let rawContent = '';
-      for (const chunk of chunksLimitados) {
-      const resultados = await Promise.all(
-        chunksLimitados.map(chunk => generateStudyMaterial(chunk))
-      );
-      const rawContent = resultados.join('\n\n');
-      }
+     const resultados = await Promise.all(
+    chunksLimitados.map(chunk => generateStudyMaterial(chunk))
+    );
+    const rawContent = resultados.join('\n\n');
 
       const originalName = sanitizeFilename(req.file.originalname);
       const material = parseAIContent(rawContent, originalName, slidesProcessados);
