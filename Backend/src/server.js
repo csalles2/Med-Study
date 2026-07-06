@@ -100,8 +100,8 @@ app.use('/api', limiter);
 // BODY PARSER
 // ─────────────────────────────────────────────
 
-app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+app.use(express.json({ limit: '70mb' }));
+app.use(express.urlencoded({ extended: true, limit: '70mb' }));
 
 // ─────────────────────────────────────────────
 // SERVIR FRONTEND EM PRODUÇÃO
@@ -140,11 +140,8 @@ const MAGIC_BYTES = {
   webp: { offset: 8, bytes: Buffer.from([0x57, 0x45, 0x42, 0x50]) },
 };
 
-function validateMagicBytes(filePath, ext) {
-  const fd = fs.openSync(filePath, 'r');
-  const header = Buffer.alloc(16);
-  fs.readSync(fd, header, 0, 16, 0);
-  fs.closeSync(fd);
+function validateMagicBytesBuffer(buffer, ext) {
+  const header = buffer.subarray(0, 16);
 
   const extMap = {
     '.pdf':  'pdf',
@@ -160,7 +157,7 @@ function validateMagicBytes(filePath, ext) {
   if (!magicKey) return false;
 
   const { offset, bytes } = MAGIC_BYTES[magicKey];
-  return header.slice(offset, offset + bytes.length).equals(bytes);
+  return header.subarray(offset, offset + bytes.length).equals(bytes);
 }
 
 function sanitizeFilename(original) {
@@ -241,84 +238,98 @@ app.get('/health', (req, res) => {
 // ROTA PRINCIPAL — PROCESSAR ARQUIVO
 // ─────────────────────────────────────────────
 
-app.post(
-  '/api/processar',
-  authenticate,
-  upload.single('file'),
-  async (req, res) => {
-    const tempPath = req.file?.path;
+app.post('/api/processar', authenticate, async (req, res) => {
+  const { filename, mimetype, data } = req.body || {};
 
-    if (!tempPath) {
-      return res.status(400).json({ message: 'Nenhum arquivo enviado.' });
-    }
+  if (!filename || !data) {
+    return res.status(400).json({ message: 'Arquivo ausente ou requisição inválida.' });
+  }
 
-    const ext = path.extname(req.file.originalname).toLowerCase();
+  const ext = path.extname(filename).toLowerCase();
+  if (!ALLOWED_EXTENSIONS.has(ext)) {
+    return res.status(400).json({ message: 'Formato não suportado.' });
+  }
 
-    try {
-      const { size } = fs.statSync(tempPath);
+  let buffer;
+  try {
+    buffer = Buffer.from(data, 'base64');
+  } catch {
+    return res.status(400).json({ message: 'Dados do arquivo inválidos.' });
+  }
 
-      if (size < 512) {
-        safeUnlink(tempPath);
-        return res.status(422).json({ message: 'Arquivo muito pequeno ou corrompido.' });
-      }
+  const MAX_SIZE = 50 * 1024 * 1024; // 50MB
+  if (buffer.length > MAX_SIZE) {
+    return res.status(413).json({ message: 'Arquivo muito grande (máx. 50MB).' });
+  }
+  if (buffer.length < 512) {
+    return res.status(422).json({ message: 'Arquivo muito pequeno ou corrompido.' });
+  }
 
-      if (!validateMagicBytes(tempPath, ext)) {
-        safeUnlink(tempPath);
-        return res.status(422).json({
-          message: 'Conteúdo do arquivo não corresponde à extensão informada.',
-        });
-      }
+  if (!validateMagicBytesBuffer(buffer, ext)) {
+    return res.status(422).json({
+      message: 'Conteúdo do arquivo não corresponde à extensão informada.',
+    });
+  }
 
-      const imageExts = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp']);
+  let tempPath = null;
 
-      let text = '';
-      let slidesProcessados = 0;
+  try {
+    const imageExts = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp']);
+
+    let text = '';
+    let slidesProcessados = 0;
+
+    if (imageExts.has(ext)) {
+      // Imagens: processa direto do buffer, sem tocar disco
+      const { analyzeImage } = require('./ai');
+      text = await analyzeImage(buffer, mimetype);
+      slidesProcessados = 1;
+    } else {
+      // PDF/PPTX: extractors precisam de um caminho de arquivo
+      const rand = crypto.randomBytes(16).toString('hex');
+      tempPath = path.join(UPLOADS_DIR, `${Date.now()}-${rand}${ext}`);
+      fs.writeFileSync(tempPath, buffer);
 
       if (ext === '.pptx') {
         text = extractFromPptx(tempPath);
         slidesProcessados = (text.match(/\[slide\d+\]/gi) || []).length || 10;
-        safeUnlink(tempPath);
-      } else if (imageExts.has(ext)) {
-        const { analyzeImage } = require('./ai');
-        const imageBuffer = fs.readFileSync(tempPath);
-        text = await analyzeImage(imageBuffer, req.file.mimetype);
-        slidesProcessados = 1;
-        safeUnlink(tempPath);
       } else {
         text = await extractFromPdf(tempPath);
         slidesProcessados = Math.ceil(text.length / 3000);
-        safeUnlink(tempPath);
       }
 
-      console.log('[processar] Texto extraído:', text.slice(0, 200).replace(/\n/g, ' '), '...');
+      safeUnlink(tempPath);
+      tempPath = null;
+    }
 
-      if (!text || text.trim().length < 50) {
-        return res.status(422).json({ message: 'Não foi possível extrair texto suficiente.' });
-      }
+    console.log('[processar] Texto extraído:', text.slice(0, 200).replace(/\n/g, ' '), '...');
 
-      const chunks = chunkText(text);
-      const chunksLimitados = chunks.slice(0, 5);
+    if (!text || text.trim().length < 50) {
+      return res.status(422).json({ message: 'Não foi possível extrair texto suficiente.' });
+    }
 
-     const resultados = await Promise.all(
-    chunksLimitados.map(chunk => generateStudyMaterial(chunk))
+    const chunks = chunkText(text);
+    const chunksLimitados = chunks.slice(0, 5);
+
+    const resultados = await Promise.all(
+      chunksLimitados.map(chunk => generateStudyMaterial(chunk))
     );
     const rawContent = resultados.join('\n\n');
 
-      const originalName = sanitizeFilename(req.file.originalname);
-      const material = parseAIContent(rawContent, originalName, slidesProcessados);
+    const originalName = sanitizeFilename(filename);
+    const material = parseAIContent(rawContent, originalName, slidesProcessados);
 
-      await createPdf(material);
+    await createPdf(material);
 
-      console.log(`[processar] Cards gerados: ${material.flashcards.length}`);
+    console.log(`[processar] Cards gerados: ${material.flashcards.length}`);
 
-      return res.json(material);
-    } catch (err) {
-      safeUnlink(tempPath);
-      console.error('[processar] Erro:', err);
-      return res.status(500).json({ message: 'Erro interno.' });
-    }
+    return res.json(material);
+  } catch (err) {
+    if (tempPath) safeUnlink(tempPath);
+    console.error('[processar] Erro:', err);
+    return res.status(500).json({ message: 'Erro interno.' });
   }
-);
+});
 
 // ─────────────────────────────────────────────
 // DOWNLOAD PDF
