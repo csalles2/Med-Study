@@ -199,6 +199,15 @@ function authenticate(req, res, next) {
   const provided = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
   const expected = process.env.APP_TOKEN;
 
+
+  // DEBUG TEMPORÁRIO — remover depois
+  console.log('[DEBUG] provided length:', provided.length);
+  console.log('[DEBUG] expected length:', expected ? expected.length : 'UNDEFINED');
+  console.log('[DEBUG] provided last char code:', provided.charCodeAt(provided.length - 1));
+  console.log('[DEBUG] expected last char code:', expected ? expected.charCodeAt(expected.length - 1) : 'N/A');
+
+
+
   const a = Buffer.alloc(64);
   const b = Buffer.alloc(64);
   a.write(provided);
