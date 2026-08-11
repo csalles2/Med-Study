@@ -13,19 +13,18 @@ const { extractFromPdf, extractFromPptx } = require('./extractor');
 const { chunkText } = require('./chunker');
 const { generateStudyMaterial } = require('./ai');
 const { createPdf } = require('./pdf');
+const db = require('./db');
+const authRoutes = require('./routes/auth');
+const { identificarUsuario } = require('./middleware/authMiddleware');
 
 const app = express();
 app.set('trust proxy', 1); // ADICIONAR ESSA LINHA
 const PORT = process.env.PORT || 3001;
 
-// ─────────────────────────────────────────────
-// VALIDAÇÕES DE AMBIENTE
-// ─────────────────────────────────────────────
-
-if (!process.env.APP_TOKEN || process.env.APP_TOKEN.length < 32) {
-  console.error(' APP_TOKEN inválido ou ausente. Defina um token de no mínimo 32 caracteres no .env');
-  process.exit(1);
-}
+// OBS: o antigo APP_TOKEN único (compartilhado por todo mundo) saiu de cena.
+// Agora cada requisição se identifica por login (usuário real) ou por um
+// guest_id (teste grátis sem conta), então essa checagem de ambiente não
+// se aplica mais.
 
 // ─────────────────────────────────────────────
 // SEGURANÇA — HELMET (headers HTTP)
@@ -69,7 +68,7 @@ app.use(cors({
     cb(new Error('Origem não permitida pelo CORS'));
   },
   methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Guest-Id'],
   credentials: false,
 }));
 
@@ -101,6 +100,9 @@ app.use('/api', limiter);
 // ─────────────────────────────────────────────
 
 app.use(express.json({ limit: '50mb' }));
+
+app.use('/api/auth', authRoutes);
+app.use('/api/admin', require('./routes/admin'));
 
 // ─────────────────────────────────────────────
 // SERVIR FRONTEND EM PRODUÇÃO
@@ -188,36 +190,15 @@ const upload = multer({
 });
 
 // ─────────────────────────────────────────────
-// MIDDLEWARE DE AUTENTICAÇÃO (timing-safe)
+// TESTE GRÁTIS SEM CONTA (1 uso por guest_id)
 // ─────────────────────────────────────────────
 
-function authenticate(req, res, next) {
-  if (process.env.NODE_ENV === 'development') {
-    return next();
-  }
+function jaUsouTesteGratis(guestId) {
+  return !!db.prepare('SELECT 1 FROM usos_convidado WHERE guest_id = ?').get(guestId);
+}
 
-  const provided = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
-  const expected = process.env.APP_TOKEN;
-
-
-  // DEBUG TEMPORÁRIO — remover depois
-  console.log('[DEBUG] provided length:', provided.length);
-  console.log('[DEBUG] expected length:', expected ? expected.length : 'UNDEFINED');
-  console.log('[DEBUG] provided last char code:', provided.charCodeAt(provided.length - 1));
-  console.log('[DEBUG] expected last char code:', expected ? expected.charCodeAt(expected.length - 1) : 'N/A');
-
-
-
-  const a = Buffer.alloc(64);
-  const b = Buffer.alloc(64);
-  a.write(provided);
-  b.write(expected);
-
-  if (!crypto.timingSafeEqual(a, b)) {
-    return res.status(401).json({ message: 'Não autorizado.' });
-  }
-
-  next();
+function registrarTesteGratis(guestId) {
+  db.prepare('INSERT OR IGNORE INTO usos_convidado (guest_id) VALUES (?)').run(guestId);
 }
 
 // ─────────────────────────────────────────────
@@ -246,11 +227,27 @@ app.get('/health', (req, res) => {
 // ROTA PRINCIPAL — PROCESSAR ARQUIVO
 // ─────────────────────────────────────────────
 
-app.post('/api/processar', authenticate, async (req, res) => {
+app.post('/api/processar', identificarUsuario, async (req, res) => {
   const { filename, mimetype, data } = req.body || {};
 
   if (!filename || !data) {
     return res.status(400).json({ message: 'Arquivo ausente ou requisição inválida.' });
+  }
+
+  // Quem está logado passa direto (limite de plano entra numa próxima etapa).
+  // Quem não está logado precisa de um guest_id e só tem direito a 1 uso.
+  let guestId = null;
+  if (!req.usuario) {
+    guestId = req.headers['x-guest-id'];
+    if (!guestId) {
+      return res.status(400).json({ message: 'Identificação ausente.' });
+    }
+    if (jaUsouTesteGratis(guestId)) {
+      return res.status(403).json({
+        message: 'Você já usou seu teste grátis. Crie uma conta gratuita para continuar usando.',
+        codigo: 'TESTE_GRATIS_USADO',
+      });
+    }
   }
 
   const ext = path.extname(filename).toLowerCase();
@@ -331,6 +328,8 @@ app.post('/api/processar', authenticate, async (req, res) => {
 
     console.log(`[processar] Cards gerados: ${material.flashcards.length}`);
 
+    if (guestId) registrarTesteGratis(guestId);
+
     return res.json(material);
   } catch (err) {
     if (tempPath) safeUnlink(tempPath);
@@ -343,7 +342,7 @@ app.post('/api/processar', authenticate, async (req, res) => {
 // DOWNLOAD PDF
 // ─────────────────────────────────────────────
 
-app.get('/api/download-pdf', authenticate, (req, res) => {
+app.get('/api/download-pdf', (req, res) => {
   const filePath = path.resolve(__dirname, 'output.pdf');
 
   if (!fs.existsSync(filePath)) {
