@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { StudyMaterial } from '../types';
 import axios from 'axios';
+import { getGuestId } from '../utils/guestId';
 
-export function useStudyMaterial() {
+export function useStudyMaterial(token: string | null) {
   const [material, setMaterial] = useState<StudyMaterial | null>(null);
   const [appState, setAppState] = useState<'upload' | 'loading' | 'result'>('upload');
   const [error, setError] = useState<string | null>(null);
+  const [codigoErro, setCodigoErro] = useState<string | null>(null);
   const [loadingStep, setLoadingStep] = useState(0);
 
   const loadingSteps = [
@@ -21,7 +23,6 @@ export function useStudyMaterial() {
       const reader = new FileReader();
       reader.onload = () => {
         const result = reader.result as string;
-        // remove o prefixo "data:application/pdf;base64," etc
         const base64 = result.split(',')[1];
         resolve(base64);
       };
@@ -39,25 +40,29 @@ export function useStudyMaterial() {
 
     try {
       setError(null);
+      setCodigoErro(null);
       setAppState('loading');
       setLoadingStep(0);
 
       const base64Data = await fileToBase64(file);
 
+      // Logado -> manda o token da conta. Convidado -> manda o guest_id
+      // (controla o teste grátis de 1 uso sem conta).
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      } else {
+        headers['X-Guest-Id'] = getGuestId();
+      }
+
       const response = await axios.post(
         `${process.env.REACT_APP_API_URL}/api/processar`,
         {
-          nomeArquivo: file.name,
-          tipoArquivo: file.type,
-          conteudo: base64Data,
+          filename: file.name,
+          mimetype: file.type,
+          data: base64Data,
         },
-        {
-          timeout: 120000,
-          headers: {
-            Authorization: `Bearer ${process.env.REACT_APP_TOKEN}`,
-            "Content-Type": "application/json",
-          },
-        }
+        { timeout: 120000, headers }
       );
 
       setMaterial(response.data);
@@ -70,6 +75,7 @@ export function useStudyMaterial() {
         "Erro ao conectar com o servidor. Verifique se o backend está rodando.";
 
       setError(msgErro);
+      setCodigoErro(err.response?.data?.codigo || null);
       setAppState('upload');
     } finally {
       clearInterval(loaderInterval);
@@ -79,6 +85,7 @@ export function useStudyMaterial() {
   const reset = () => {
     setMaterial(null);
     setError(null);
+    setCodigoErro(null);
     setAppState('upload');
     setLoadingStep(0);
   };
@@ -89,6 +96,7 @@ export function useStudyMaterial() {
     loadingStep,
     loadingSteps,
     error,
+    codigoErro,
     processFile,
     reset,
   };

@@ -58,4 +58,5 @@ async function enviarEmailRecuperacao(destino, nome, token) {
   });
 }
 
+
 module.exports = { enviarEmailVerificacao, enviarEmailRecuperacao };

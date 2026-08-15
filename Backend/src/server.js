@@ -1,5 +1,6 @@
 require('dotenv').config();
 
+
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
@@ -84,17 +85,27 @@ app.get('/health', (req, res) => {
 // RATE LIMITING — por IP
 // ─────────────────────────────────────────────
 
-const limiter = rateLimit({
+// Limite apertado só pra login/cadastro — protege contra força bruta de senha
+const limiterAuth = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: process.env.NODE_ENV === 'development' ? 1000 : 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Muitas tentativas de login. Tente novamente em alguns minutos.' },
+});
+
+// Limite mais folgado pra quem está de fato usando o app (processar arquivo)
+const limiterUso = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === 'development' ? 1000 : 30,
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: 'Muitas requisições. Tente novamente mais tarde.' },
   skip: (req) => req.path === '/health',
 });
 
-app.use('/api', limiter);
-
+app.use('/api/auth', limiterAuth);
+app.use('/api', limiterUso);
 // ─────────────────────────────────────────────
 // BODY PARSER
 // ─────────────────────────────────────────────
@@ -512,6 +523,7 @@ for (const match of questoesBlocos) {
     questoes,
   };
 }
+
 // ─────────────────────────────────────────────
 // START
 // ─────────────────────────────────────────────

@@ -1,0 +1,195 @@
+/* medstudy-frontend/src/styles/auth.css — reaproveita as variáveis do global.css */
+
+.auth-pagina {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 40px 34px;
+}
+
+.auth-marca {
+  font-family: 'DM Serif Display', serif;
+  font-size: 20px;
+  color: var(--accent-light);
+  margin-bottom: 6px;
+}
+
+.auth-titulo {
+  font-size: 26px;
+  margin: 0 0 6px;
+  color: var(--text-primary);
+}
+
+.auth-subtitulo {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0 0 26px;
+}
+
+.auth-campo {
+  margin-bottom: 16px;
+}
+
+.auth-campo label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.auth-campo input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px 13px;
+  font-size: 14.5px;
+  font-family: 'DM Sans', sans-serif;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.auth-campo input:focus {
+  border-color: var(--border-hover);
+}
+
+.auth-erro {
+  background: rgba(226, 75, 74, 0.12);
+  border: 1px solid rgba(226, 75, 74, 0.35);
+  color: #f0a9a8;
+  font-size: 13.5px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-bottom: 18px;
+}
+
+.auth-botao-full {
+  width: 100%;
+  justify-content: center;
+}
+
+.auth-rodape {
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  margin-top: 22px;
+}
+
+.auth-rodape a {
+  color: var(--accent-light);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.auth-rodape a:hover {
+  text-decoration: underline;
+}
+
+.auth-divisor {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0;
+  color: var(--text-muted);
+  font-size: 12.5px;
+}
+
+.auth-divisor::before,
+.auth-divisor::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* Tela de boas-vindas */
+.boasvindas-pagina {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+}
+
+.boasvindas-conteudo {
+  max-width: 480px;
+}
+
+.boasvindas-conteudo h1 {
+  font-size: 34px;
+  margin-bottom: 14px;
+}
+
+.boasvindas-conteudo h1 span {
+  color: var(--accent-light);
+}
+
+.boasvindas-conteudo p {
+  color: var(--text-secondary);
+  font-size: 15px;
+  margin-bottom: 34px;
+}
+
+.boasvindas-botoes {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.boasvindas-convidado {
+  margin-top: 20px;
+  font-size: 13.5px;
+  color: var(--text-muted);
+}
+
+.boasvindas-convidado button {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.boasvindas-convidado button:hover {
+  color: var(--accent-light);
+}
+
+.cta-criar-conta {
+  margin-top: 20px;
+  padding: 16px 18px;
+  background: var(--accent-dim);
+  border: 1px solid var(--border-hover);
+  border-radius: 10px;
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  max-width: 420px;
+}
+
+.cta-criar-conta a {
+  color: var(--accent-light);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.cta-criar-conta a:hover {
+  text-decoration: underline;
+}

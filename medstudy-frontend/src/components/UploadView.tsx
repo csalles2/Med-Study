@@ -1,12 +1,14 @@
 import React, { useState, useRef } from 'react';
 import { Upload, FileText, Presentation, Image } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 interface UploadViewProps {
   onFile: (file: File) => Promise<void>;
   error: string | null;
+  codigoErro?: string | null;
 }
 
-export default function UploadView({ onFile, error }: any) {
+export default function UploadView({ onFile, error, codigoErro }: any) {
   const [dragging, setDragging] = useState<boolean>(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -98,7 +100,13 @@ export default function UploadView({ onFile, error }: any) {
         <span className="format-pill">Bilíngue PT/ES</span>
       </div>
 
-      {error && (
+      {error && codigoErro === 'TESTE_GRATIS_USADO' && (
+        <div className="cta-criar-conta">
+          {error} <Link to="/cadastro">Criar conta grátis →</Link>
+        </div>
+      )}
+
+      {error && codigoErro !== 'TESTE_GRATIS_USADO' && (
         <div style={{ color: '#F09595', fontSize: 13, textAlign: 'center', maxWidth: 400, marginTop: 20 }}>
           Erro: {error}
         </div>
