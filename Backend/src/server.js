@@ -22,10 +22,7 @@ const app = express();
 app.set('trust proxy', 1); // ADICIONAR ESSA LINHA
 const PORT = process.env.PORT || 3001;
 
-// OBS: o antigo APP_TOKEN único (compartilhado por todo mundo) saiu de cena.
-// Agora cada requisição se identifica por login (usuário real) ou por um
-// guest_id (teste grátis sem conta), então essa checagem de ambiente não
-// se aplica mais.
+
 
 // ─────────────────────────────────────────────
 // SEGURANÇA — HELMET (headers HTTP)

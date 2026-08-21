@@ -1,6 +1,6 @@
-require('dotenv').config();
+
 const Anthropic = require('@anthropic-ai/sdk');
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY});
 
 /**
  * Determina a quantidade ideal de flashcards com base no tamanho do conteúdo.
